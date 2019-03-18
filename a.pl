@@ -4,23 +4,35 @@ use strict;
 use warnings;
 
 {
-    package main;
+    package TerraformFromGCP;
     
     my @PACKAGES = qw(
         GoogleComputeNetwork
         GoogleComputeSubnetwork
         GoogleComputeFirewall
     );
+
+    our $GCLOUD_CMD = 'gcloud';
     
     sub MAIN
     {
         my @argv = @_;
+
+        environment();
+
         my @buf;
         foreach my $p (@PACKAGES) {
             push(@buf, $p->run());
         }
         print join("\n", @buf);
         return 0;
+    }
+
+    sub environment
+    {
+        if (exists $ENV{GCLOUD_CMD}) {
+            $GCLOUD_CMD = $ENV{GCLOUD_CMD};
+        }
     }
     
     exit MAIN(@ARGV);
@@ -88,14 +100,14 @@ EOL
 {
     package GoogleComputeNetwork;
     use base qw/TerraformResourceWithName/;
-    sub list_cmd { 'gcloud compute networks list' };
+    sub list_cmd { "$TerraformFromGCP::GCLOUD_CMD compute networks list" };
     sub resource_name { 'google_compute_network' };
 }
 
 {
     package GoogleComputeSubnetwork;
     use base qw/TerraformResource/;
-    sub list_cmd { 'gcloud compute networks subnets list' };
+    sub list_cmd { "$TerraformFromGCP::GCLOUD_CMD compute networks subnets list" };
     sub resource_name { 'google_compute_subnetwork' };
 
     sub template_for_oneline
@@ -116,7 +128,7 @@ EOL
 {
     package GoogleComputeFirewall;
     use base qw/TerraformResource/;
-    sub list_cmd { 'gcloud compute firewall-rules list' };
+    sub list_cmd { "$TerraformFromGCP::GCLOUD_CMD compute firewall-rules list" };
     sub resource_name { 'google_compute_firewall' };
 
     sub template_for_oneline
