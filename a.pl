@@ -117,7 +117,7 @@ EOL
     package GoogleComputeFirewall;
     use base qw/TerraformResource/;
     sub list_cmd { 'gcloud compute firewall-rules list' };
-    sub resource_name { 'google_compute_subnetwork' };
+    sub resource_name { 'google_compute_firewall' };
 
     sub template_for_oneline
     {
@@ -129,15 +129,21 @@ EOL
         #default-allow-internal  default  10.128.0.0/9     tcp:0-65535,udp:0-65535,icmp
         #default-allow-rdp       default  0.0.0.0/0        tcp:3389
         #default-allow-ssh       default  0.0.0.0/0        tcp:22
-        my ($name, $src, $rule_expr, $tags) = @{$param}[0, 2, 3, 4];
+        my ($name, $network, $src, $rule_expr, $tags) = @{$param}[0, 1, 2, 3, 4];
         my $resource_name = $self->resource_name();
         my $rule_string = $self->make_rule_string($rule_expr);
-        chomp($rule_string);
+        my @append_opts = ($rule_string);
+        if (defined($tags)) {
+            push(@append_opts, $self->make_target_tags($tags));
+        }
+        my $opt = join("\n", @append_opts);
+        chomp($opt);
         return <<EOL;
 resource "$resource_name" "$name" {
   name = "$name"
+  network = "$network"
 
-$rule_string
+$opt
 }
 EOL
     }
@@ -153,19 +159,28 @@ EOL
                 my ($protocol, $port) = split(/:/, $r);
                 push(@rule_strings, <<EOL);
   allow {
-    protocol = "$protocol";
-    ports = "$port";
+    protocol = "$protocol"
+    ports = ["$port"]
   }
 EOL
             } else {
                 push(@rule_strings, <<EOL);
   allow {
-    protocol = "$r";
+    protocol = "$r"
   }
 EOL
             }
         }
         return join("\n", @rule_strings);
+    }
+
+    sub make_target_tags
+    {
+        my $self = shift(@_);
+        my ($tags) = @_;
+        return <<EOL;
+  target_tags = ["$tags"]
+EOL
     }
 }
 
