@@ -90,6 +90,7 @@ use warnings;
         my ($name) = @$param;
         my $resource_name = $self->resource_name();
         return <<EOL;
+# terraform import $resource_name.$name $name
 resource "$resource_name" "$name" {
   name = "$name"
 }
@@ -117,6 +118,7 @@ EOL
         my ($name, $cidr) = @{$param}[0, 3];
         my $resource_name = $self->resource_name();
         return <<EOL;
+# terraform import $resource_name.$name $name
 resource "$resource_name" "$name" {
   name = "$name"
   ip_cidr_range = "$cidr"
@@ -151,6 +153,7 @@ EOL
         my $opt = join("\n", @append_opts);
         chomp($opt);
         return <<EOL;
+# terraform import $resource_name.$name $name
 resource "$resource_name" "$name" {
   name = "$name"
   network = "$network"
