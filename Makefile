@@ -1,4 +1,6 @@
 default: run
 
+GCLOUD_CMD =
+
 run:
-	./a.pl
+	env GCLOUD_CMD="$(GCLOUD_CMD)" ./a.pl

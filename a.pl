@@ -30,7 +30,7 @@ use warnings;
 
     sub environment
     {
-        if (exists $ENV{GCLOUD_CMD}) {
+        if (exists $ENV{GCLOUD_CMD} and 0 < length($ENV{GCLOUD_CMD})) {
             $GCLOUD_CMD = $ENV{GCLOUD_CMD};
         }
     }
@@ -130,20 +130,20 @@ EOL
 {
     package GoogleComputeFirewall;
     use base qw/TerraformResource/;
-    sub list_cmd { "$TerraformFromGCP::GCLOUD_CMD compute firewall-rules list" };
+    sub list_cmd { qq|$TerraformFromGCP::GCLOUD_CMD compute firewall-rules list --format="table(name,network,direction,priority,sourceRanges.list():label=SRC_RANGES,allowed[].map().firewall_rule().list():label=ALLOW,disabled,targetTags.list():label=TARGET_TAGS,destinationRanges.list():label=DEST_RANGES,denied[].map().firewall_rule().list():label=DENY,sourceTags.list():label=SRC_TAGS,sourceServiceAccounts.list():label=SRC_SVC_ACCT,targetServiceAccounts.list():label=TARGET_SVC_ACCT)"| };
     sub resource_name { 'google_compute_firewall' };
 
     sub template_for_oneline
     {
         my $self = shift(@_);
         my ($param) = @_;
-        #NAME                    NETWORK  SRC_RANGES       RULES                         SRC_TAGS  TARGET_TAGS
-        #allow-from-ug           default  202.221.220.251  tcp:22                                  server-ug
-        #default-allow-icmp      default  0.0.0.0/0        icmp
-        #default-allow-internal  default  10.128.0.0/9     tcp:0-65535,udp:0-65535,icmp
-        #default-allow-rdp       default  0.0.0.0/0        tcp:3389
-        #default-allow-ssh       default  0.0.0.0/0        tcp:22
-        my ($name, $network, $src, $rule_expr, $tags) = @{$param}[0, 1, 2, 3, 4];
+        #NAME                    NETWORK  DIRECTION  PRIORITY  SRC_RANGES       ALLOW                         DISABLED  TARGET_TAGS  DEST_RANGES  DENY  SRC_TAGS  SRC_SVC_ACCT  TARGET_SVC_ACCT
+        #allow-from-ug           default  INGRESS    1000      202.221.220.251  tcp:22                        False     server-ug
+        #default-allow-icmp      default  INGRESS    65534     0.0.0.0/0        icmp                          False
+        #default-allow-internal  default  INGRESS    65534     10.128.0.0/9     tcp:0-65535,udp:0-65535,icmp  False
+        #default-allow-rdp       default  INGRESS    65534     0.0.0.0/0        tcp:3389                      True
+        #default-allow-ssh       default  INGRESS    65534     0.0.0.0/0        tcp:22                        True
+        my ($name, $network, $priority, $src, $rule_expr, $disabled, $tags) = @{$param}[0, 1, 3, 4, 5, 6, 7];
         my $resource_name = $self->resource_name();
         my $rule_string = $self->make_rule_string($rule_expr);
         my @append_opts = ($rule_string);
