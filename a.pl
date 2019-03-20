@@ -10,6 +10,7 @@ use warnings;
         GoogleComputeNetwork
         GoogleComputeSubnetwork
         GoogleComputeFirewall
+        GoogleComputeDisk
     );
 
     our $GCLOUD_CMD = 'gcloud';
@@ -101,14 +102,14 @@ EOL
 {
     package GoogleComputeNetwork;
     use base qw/TerraformResourceWithName/;
-    sub list_cmd { "$TerraformFromGCP::GCLOUD_CMD compute networks list" };
+    sub list_cmd { qq|$TerraformFromGCP::GCLOUD_CMD compute networks list| };
     sub resource_name { 'google_compute_network' };
 }
 
 {
     package GoogleComputeSubnetwork;
     use base qw/TerraformResource/;
-    sub list_cmd { "$TerraformFromGCP::GCLOUD_CMD compute networks subnets list" };
+    sub list_cmd { qq|$TerraformFromGCP::GCLOUD_CMD compute networks subnets list| };
     sub resource_name { 'google_compute_subnetwork' };
 
     sub template_for_oneline
@@ -196,6 +197,33 @@ EOL
         my ($tags) = @_;
         return <<EOL;
   target_tags = ["$tags"]
+EOL
+    }
+}
+
+{
+    package GoogleComputeDisk;
+    use base qw/TerraformResource/;
+    sub list_cmd { qq|$TerraformFromGCP::GCLOUD_CMD compute disks list  --format="table(name,zone,size_gb,type,source_image.basename(),status)"| };
+    sub resource_name { 'google_compute_disk' };
+
+    sub template_for_oneline
+    {
+        my $self = shift(@_);
+        my ($param) = @_;
+        #NAME        ZONE               SIZE_GB  TYPE    SOURCE_IMAGE        STATUS
+        #instance-1  asia-northeast1-b  20       pd-ssd  centos-7-v20190213  READY
+        my ($name, $zone, $size, $type, $source_image, $status) = @{$param};
+        my $resource_name = $self->resource_name();
+        return <<EOL;
+# terraform import $resource_name.$name $name
+resource "$resource_name" "$name" {
+  name = "$name"
+  zone = "$zone"
+  type = "$type"
+  size = $size
+  image = "$source_image"
+}
 EOL
     }
 }
