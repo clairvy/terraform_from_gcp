@@ -207,7 +207,7 @@ EOL
 {
     package GoogleComputeDisk;
     use base qw/TerraformResource/;
-    sub list_cmd { qq|$TerraformFromGCP::GCLOUD_CMD compute disks list  --format="table(name,zone,size_gb,type,source_image.basename(),status)"| };
+    sub list_cmd { qq|$TerraformFromGCP::GCLOUD_CMD compute disks list --format="table(name,zone,size_gb,type,source_image.basename(),status)"| };
     sub resource_name { 'google_compute_disk' };
 
     sub template_for_oneline
