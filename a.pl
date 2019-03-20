@@ -147,6 +147,7 @@ EOL
         #default-allow-ssh       default  INGRESS    65534     0.0.0.0/0        tcp:22                        True
         my ($name, $network, $priority, $src, $rule_expr, $disabled, $tags) = @{$param}[0, 1, 3, 4, 5, 6, 7];
         my $resource_name = $self->resource_name();
+        $disabled = lc($disabled);
         my $rule_string = $self->make_rule_string($rule_expr);
         my @append_opts = ($rule_string);
         if (defined($tags)) {
@@ -159,6 +160,8 @@ EOL
 resource "$resource_name" "$name" {
   name = "$name"
   network = "$network"
+  priority = "$priority"
+  disabled = $disabled
 
 $opt
 }
