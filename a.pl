@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+# https://cloud.google.com/sdk/gcloud/reference/topic/projections
+
 {
     package TerraformFromGCP;
     
@@ -11,6 +13,7 @@ use warnings;
         GoogleComputeSubnetwork
         GoogleComputeFirewall
         GoogleComputeDisk
+        GoogleComputeInstance
     );
 
     our $GCLOUD_CMD = 'gcloud';
@@ -231,4 +234,81 @@ EOL
     }
 }
 
+{
+    package GoogleComputeInstance;
+    use base qw/TerraformResource/;
+    sub list_cmd { qq|$TerraformFromGCP::GCLOUD_CMD compute instances list --format="table(name,zone.basename(),machineType.machine_type().basename(),networkInterfaces[].networkIP.notnull().list():label=INTERNAL_IP,networkInterfaces[].accessConfigs[0].natIP.notnull().list():label=EXTERNAL_IP,status,serviceAccounts[0].scopes.join(','),disks.filter('boot:true').firstof(deviceName).join(','),networkInterfaces[0].network.basename(),networkInterfaces[0].subnetwork.basename(),tags.items.join(','):label=TAGS)"| };
+    sub resource_name { 'google_compute_instance' };
+
+    sub template_for_oneline
+    {
+        my $self = shift(@_);
+        my ($param) = @_;
+        #NAME        ZONE               MACHINE_TYPE  INTERNAL_IP  EXTERNAL_IP  STATUS      SCOPES                                                                                                                                                                                                                                                                                                       DISKS       NETWORK  SUBNETWORK  TAGS
+        #instance-1  asia-northeast1-b  f1-micro      10.146.0.2   35.213.6.71  TERMINATED  https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append  instance-1  default  default     server-ug
+        my ($name, $zone, $type, $in_ip, $ex_ip, $status, $scopes, $boot_disk, $network, $subnetwork, $tags) = @{$param};
+        my $resource_name = $self->resource_name();
+        my @opts;
+        push(@opts, $self->make_tag_string($tags));
+        push(@opts, $self->make_scope_string($scopes));
+        my $opt_str = join("\n", @opts);
+        chomp($opt_str);
+        return <<EOL;
+# terraform import $resource_name.$name $name
+resource "$resource_name" "$name" {
+  name = "$name"
+  zone = "$zone"
+  machine_type = "$type"
+
+  boot_disk {
+    source = "$boot_disk"
+  }
+
+  network_interface {
+    network = "$network"
+    subnetwork = "$subnetwork"
+
+    access_config {
+    }
+  }
+
+$opt_str
+}
+EOL
+    }
+
+    sub make_scope_string
+    {
+        my $self = shift(@_);
+        my ($scopes) = @_;
+        my @ts = split(",", $scopes);
+        if (@ts <= 0) {
+            return;
+        }
+        my $str = join("\n", map {qq|      "$_",|} @ts);
+        return <<EOL
+  service_account {
+    scopes = [
+$str
+    ]
+  }
+EOL
+    }
+
+    sub make_tag_string
+    {
+        my $self = shift(@_);
+        my ($tags) = @_;
+        my @ts = split(",", $tags);
+        if (@ts <= 0) {
+            return;
+        }
+        my $str = join("\n", map {qq|    "$_",|} @ts);
+        return <<EOL
+  tags = [
+$str
+  ]
+EOL
+    }
+}
 1;
