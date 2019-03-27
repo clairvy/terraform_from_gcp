@@ -1,2 +1,3 @@
-Makefile.mak
-docker-compose.yml
+# ignore local test files
+/Makefile.mak
+/docker-compose.yml
