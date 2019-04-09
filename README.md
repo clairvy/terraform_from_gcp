@@ -2,7 +2,7 @@
 
 * make tf file to import
 * show command to import
-* show property to merge to tf file from output of plan
+* [Not implemented yet] show property to merge to tf file from output of plan
 
 ## Prerequirements
 
@@ -15,7 +15,7 @@
 
 ## supported resources
 
-* google_compute_network
-* google_compute_subnetwork
-* google_compute_firewall
-* google_compute_disk
+* google\_compute\_network
+* google\_compute\_subnetwork
+* google\_compute\_firewall
+* google\_compute\_disk
